@@ -2,10 +2,6 @@
 # SPDX-FileCopyrightText: Copyright © DuMux Project contributors, see AUTHORS.md in root folder
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-
-# TODO set the image name here to a global address
-#      after adding your container to your modules container registry
-# e.g. git.iws.uni-stuttgart.de:4567/dumux-pub/koch2017a
 IMAGE_NAME=rotatingcylinders
 
 # the host directory ...
