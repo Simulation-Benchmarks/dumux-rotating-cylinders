@@ -1,7 +1,3 @@
-This file has been created automatically. Please adapt it to your needs.
-
-## Content
-
 The content of this DUNE module was extracted from the module `dumux`.
 In particular, the following subFolder of `dumux` have been extracted:
 *   `test/freeflow/navierstokes/rotatingcylinders`
@@ -43,13 +39,12 @@ Create a root folder, e.g. `DUMUX`, enter the previously created folder,
 clone this repository and use the install script `install_rotating-cylinders.sh`
 provided in this repository to install all dependent modules.
 
-Important: $remoteurl has to be corrected!
 
 ```sh
 mkdir DUMUX
 cd DUMUX
-git clone $remoteurl rotating-cylinders
-./rotating-cylinders/install_rotating-cylinders.sh
+git clone https://git.iws.uni-stuttgart.de/benchmarks/rotating-cylinders.git rotating-cylinders
+./rotating-cylinders/docker/install_rotating-cylinders.sh
 ```
 
 This will clone all modules into the directory `DUMUX`,
