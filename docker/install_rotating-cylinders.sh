@@ -70,6 +70,10 @@ echo "Installing dune-uggrid"
 installModule dune-uggrid https://gitlab.dune-project.org/staging/dune-uggrid.git origin/releases/2.10 cf2513efb6497dc95744649e0658cedef2980bff
 echo "Installing dune-common"
 installModule dune-common https://gitlab.dune-project.org/core/dune-common.git origin/releases/2.10 fa09b5bd31efa38cc051e22717b0d259de5ae8a1
+echo "Installing DuMux"
+installModule dumux https://git.iws.uni-stuttgart.de/dumux-repositories/dumux.git origin/releases/3.9 bb99f6bb0d6db317aae6da4000ecd37ccc664187
+echo "Installing rotating-cylinders benchmark"
+installModule rotating-cylinders https://git.iws.uni-stuttgart.de/benchmarks/rotating-cylinders.git origin/main ""
 echo "Configuring project"
 if ! ./dune-common/bin/dunecontrol --opts=rotating-cylinders/cmake.opts all; then
     echo "Configuration of the project failed"
