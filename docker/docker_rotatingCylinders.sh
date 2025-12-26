@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright © DuMux Project contributors, see AUTHORS.md in root folder
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-IMAGE_NAME=rotatingcylinders
+IMAGE_NAME=git.iws.uni-stuttgart.de:4567/benchmarks/rotating-cylinders
 
 # the host directory ...
 SHARED_DIR_HOST="$(pwd)"
