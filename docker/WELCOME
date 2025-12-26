@@ -10,7 +10,7 @@ module at /dumux/rotating-cylinders/build-cmake.
 
 To run the simulation follow the steps below
 "
-cd /dumux/rotating-cylinders/build-cmake/freeflow/navierstokes/rotatingcylinders \
+cd /dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotatingcylinders \
 make test_ff_navierstokes_rotatingcylinders \
 ./test_ff_navierstokes_rotatingcylinders
 
