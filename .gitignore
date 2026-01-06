@@ -63,3 +63,20 @@ MANIFEST
 _skbuild/
 dist
 *.egg-info
+
+# Snakemake hidden folders
+.nfdi/
+.snakefile/
+.snakemake/
+
+# Sentinel / temporary files
+*.done
+.simulation_done
+
+# Conda environments created by Snakemake
+.snakemake/conda/
+
+# Any other temporary files
+*.swp
+*.tmp
+
