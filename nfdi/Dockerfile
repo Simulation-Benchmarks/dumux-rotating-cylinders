@@ -37,44 +37,16 @@ RUN apt-get update \
 
 # add the permission helper script to the my_init service
 COPY setpermissions.sh /etc/my_init.d/setpermissions.sh
+RUN chmod +x /etc/my_init.d/setpermissions.sh
 
 # create a dumux user
-# add the welcome message (copied further down) output to bashrc
-# make the set permission helper script executable
 # add user to video group which enables graphics if desired
 RUN useradd -m --home-dir /dumux dumux \
-    && echo "cat /dumux/WELCOME" >> /dumux/.bashrc \
-    && chmod +x /etc/my_init.d/setpermissions.sh \
     && usermod -a -G video dumux
-
-# switch to the dumux user and set the working directory
-USER dumux
-WORKDIR /dumux
 
 # create a shared volume communicating with the host
 RUN mkdir /dumux/shared
 VOLUME /dumux/shared
-
-# This is the message printed on entry
-COPY WELCOME /dumux/WELCOME
-
-# set git user in case installation requires to apply patches
-RUN git config --global user.name "rotatingCylinders"
-RUN git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
-
-# Install the dumux module and its dependencies
-# This expects the install script to do everything from clone to configure
-COPY install_rotating-cylinders.sh /dumux/install_rotating-cylinders.sh
-RUN bash /dumux/install_rotating-cylinders.sh \
-    && rm -f /dumux/install_rotating-cylinders.sh
-
-# Run the simulation 
-COPY --chown=dumux:dumux run_simulation.sh /dumux/run_simulation.sh
-RUN chmod +x /dumux/run_simulation.sh
-
-# unset git user
-RUN git config --global --unset user.name
-RUN git config --global --unset user.email
 
 # switch back to root
 WORKDIR /dumux

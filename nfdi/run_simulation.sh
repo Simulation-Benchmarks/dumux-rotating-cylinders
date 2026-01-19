@@ -1,16 +1,3 @@
-# #!/usr/bin/env bash
-# set -euo pipefail
-
-# SIM_DIR="/dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotierst_cylinders"
-# EXEC="test_ff_navierstokes_rotatingcylinders"
-# SHARED="/dumux/shared"
-
-# cd "${SIM_DIR}"
-# make "${EXEC}"
-# ./"${EXEC}"
-
-# cp *.vtu "${SHARED}/"
-
 #!/usr/bin/env bash
 set -euo pipefail
 
