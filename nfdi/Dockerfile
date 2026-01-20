@@ -44,17 +44,41 @@ RUN chmod +x /etc/my_init.d/setpermissions.sh
 RUN useradd -m --home-dir /dumux dumux \
     && usermod -a -G video dumux
 
+# Switch to dumux user
+USER dumux
+WORKDIR /dumux
+
 # create a shared volume communicating with the host
 RUN mkdir /dumux/shared
 VOLUME /dumux/shared
 
-# switch back to root
+# Container-only writable folder
+RUN mkdir -p /dumux/work
+RUN chown -R dumux:dumux /dumux/work
+
+# ---------------------------------------------
+# Configure git for installation
+# ---------------------------------------------
+RUN git config --global user.name "rotatingCylinders" \
+    && git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
+
+# Install modules using installation script
+COPY install_rotating-cylinders.sh /dumux/install_rotating-cylinders.sh
+RUN bash /dumux/install_rotating-cylinders.sh \
+    && rm -f /dumux/install_rotating-cylinders.sh
+
+# Unset git user
+RUN git config --global --unset user.name \
+    && git config --global --unset user.email
+
+# ---------------------------------------------
+# Switch back to root
+# ---------------------------------------------
 WORKDIR /dumux
 USER root
 
-# set entry point like advised https://github.com/phusion/baseimage-docker
-# this sets the permissions right, see above
+# ---------------------------------------------
+# Entry point
+# ---------------------------------------------
 ENTRYPOINT ["/sbin/my_init","--","/sbin/setuser","dumux","/bin/bash","-l","-c"]
-
-# Starts executing the simulation
-CMD ["/dumux/run_simulation.sh"]
+CMD ["/bin/bash"]
