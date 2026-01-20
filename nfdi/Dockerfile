@@ -37,14 +37,15 @@ RUN apt-get update \
 
 # add the permission helper script to the my_init service
 COPY setpermissions.sh /etc/my_init.d/setpermissions.sh
-RUN chmod +x /etc/my_init.d/setpermissions.sh
 
 # create a dumux user
+# make the set permission helper script executable
 # add user to video group which enables graphics if desired
 RUN useradd -m --home-dir /dumux dumux \
+    && chmod +x /etc/my_init.d/setpermissions.sh \
     && usermod -a -G video dumux
 
-# Switch to dumux user
+# switch to the dumux user and set the working directory
 USER dumux
 WORKDIR /dumux
 
@@ -52,33 +53,31 @@ WORKDIR /dumux
 RUN mkdir /dumux/shared
 VOLUME /dumux/shared
 
-# Container-only writable folder
-RUN mkdir -p /dumux/work
-RUN chown -R dumux:dumux /dumux/work
+# set git user in case installation requires to apply patches
+RUN git config --global user.name "rotatingCylinders"
+RUN git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
 
-# ---------------------------------------------
-# Configure git for installation
-# ---------------------------------------------
-RUN git config --global user.name "rotatingCylinders" \
-    && git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
-
-# Install modules using installation script
+# Install the dumux module and its dependencies
+# This expects the install script to do everything from clone to configure
 COPY install_rotating-cylinders.sh /dumux/install_rotating-cylinders.sh
 RUN bash /dumux/install_rotating-cylinders.sh \
     && rm -f /dumux/install_rotating-cylinders.sh
 
-# Unset git user
-RUN git config --global --unset user.name \
-    && git config --global --unset user.email
+    # Build rotating cylinders executable
+RUN cd /dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotierst_cylinders \
+    && make test_ff_navierstokes_rotatingcylinders
 
-# ---------------------------------------------
-# Switch back to root
-# ---------------------------------------------
+# unset git user
+RUN git config --global --unset user.name
+RUN git config --global --unset user.email
+
+# switch back to root
 WORKDIR /dumux
 USER root
 
-# ---------------------------------------------
-# Entry point
-# ---------------------------------------------
+# set entry point like advised https://github.com/phusion/baseimage-docker
+# this sets the permissions right, see above
 ENTRYPOINT ["/sbin/my_init","--","/sbin/setuser","dumux","/bin/bash","-l","-c"]
-CMD ["/bin/bash"]
+
+# Starts executing the simulation
+CMD ["/dumux/run_simulation.sh"]
