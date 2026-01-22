@@ -50,3 +50,7 @@ git clone https://git.iws.uni-stuttgart.de/benchmarks/rotating-cylinders.git rot
 This will clone all modules into the directory `DUMUX`,
 configure your module with `dunecontrol` and build tests.
 
+To run the simulation via snakemake workflow:
+```sh
+snakemake --use-singularity --cores all   --singularity-args "--bind $(pwd):/dumux/shared"
+```

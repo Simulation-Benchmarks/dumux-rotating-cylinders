@@ -5,7 +5,6 @@
 # see https://github.com/phusion/baseimage-docker for information on the base image
 # It is Ubuntu LTS customized for better Docker compatibility
 FROM phusion/baseimage:jammy-1.0.4
-MAINTAINER sarbani.roy@simtech.uni-stuttgart.de
 
 # run Ubuntu update as advised on https://github.com/phusion/baseimage-docker
 ENV DEBIAN_FRONTEND=noninteractive
@@ -40,11 +39,9 @@ RUN apt-get update \
 COPY setpermissions.sh /etc/my_init.d/setpermissions.sh
 
 # create a dumux user
-# add the welcome message (copied further down) output to bashrc
 # make the set permission helper script executable
 # add user to video group which enables graphics if desired
 RUN useradd -m --home-dir /dumux dumux \
-    && echo "cat /dumux/WELCOME" >> /dumux/.bashrc \
     && chmod +x /etc/my_init.d/setpermissions.sh \
     && usermod -a -G video dumux
 
@@ -56,9 +53,6 @@ WORKDIR /dumux
 RUN mkdir /dumux/shared
 VOLUME /dumux/shared
 
-# This is the message printed on entry
-COPY WELCOME /dumux/WELCOME
-
 # set git user in case installation requires to apply patches
 RUN git config --global user.name "rotatingCylinders"
 RUN git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
@@ -68,6 +62,12 @@ RUN git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
 COPY install_rotating-cylinders.sh /dumux/install_rotating-cylinders.sh
 RUN bash /dumux/install_rotating-cylinders.sh \
     && rm -f /dumux/install_rotating-cylinders.sh
+
+RUN cd /dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotatingcylinders
+        
+# Build rotating cylinders executable
+RUN cd /dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotatingcylinders \
+    && make test_ff_navierstokes_rotatingcylinders
 
 # unset git user
 RUN git config --global --unset user.name
@@ -79,7 +79,7 @@ USER root
 
 # set entry point like advised https://github.com/phusion/baseimage-docker
 # this sets the permissions right, see above
-ENTRYPOINT ["/sbin/my_init","--quiet","--","/sbin/setuser","dumux","/bin/bash","-l","-c"]
+ENTRYPOINT ["/sbin/my_init","--","/sbin/setuser","dumux","/bin/bash","-l","-c"]
 
-# start interactive shell
-CMD ["/bin/bash","-i"]
+# Starts executing the simulation
+CMD ["/dumux/run_simulation.sh"]

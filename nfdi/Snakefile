@@ -1,26 +1,70 @@
-# Snakefile — rotating cylinders benchmark
+# benchmarks/rotating-cylinders/Snakefile
 
+import json
 import os
-import glob
 
-tool = "dumux"
+# --------------------------
+# Load workflow configuration
+# --------------------------
+with open("workflow_config.json") as f:
+    config = json.load(f)
 
-# Directory where simulation writes VTU files
-output_dir = "."
+tools = config["tools"]
+benchmark = config["benchmark"]
+benchmark_uri = config["benchmark_uri"]
+configurations = config["configurations"]
+config_to_param = config["configuration_to_parameter_file"]
+config_to_vtu_files = config.get("configuration_to_solution_vtu_files", {})
 
-# Dynamically find all VTU files starting with "test_rotatingcylinders"
-vtu_files = glob.glob(os.path.join(output_dir, "test_rotatingcylinders*.vtu"))
+# --------------------------
+# Helper functions
+# --------------------------
+def parameter_file(cfg):
+    return config_to_param[cfg]
 
-rule run_rotating_cylinders_simulation:
+def vtu_files(cfg):
+    return config_to_vtu_files.get(cfg, [])
+
+def summary_file(tool_name):
+    return f"{tool_name}_summary.json"
+
+# --------------------------
+# Include tool Snakefiles
+# --------------------------
+for tool in tools:
+    include: f"{tool}/Snakefile"
+
+# --------------------------
+# Global result directory
+# --------------------------
+result_dir = f"snakemake_results/rotating-cylinders"
+
+# --------------------------
+# Rule: Aggregate all outputs
+# --------------------------
+rule all:
     input:
-        script = "docker_rotatingCylinders.sh"
+        expand(f"{result_dir}/dumux/solution_metrics_{{configuration}}.json", configuration=configurations),
+        expand(f"{result_dir}/dumux/solution_field_data_{{configuration}}.zip", configuration=configurations)
+
+# --------------------------
+# Rule: Create summary
+# --------------------------
+rule create_summary:
+    input:
+        parameter_files=[parameter_file(cfg) for cfg in configurations],
+        solution_vtu_files=sum([vtu_files(cfg) for cfg in configurations], [])  # flatten list of lists
     output:
-        # We can use a sentinel file since the container produces multiple outputs
-        os.path.join(output_dir, ".simulation_done")
-    conda:
-        "environment.yaml",
+        summary=summary_file("dumux")
+    params:
+        configs=configurations
     shell:
         """
-        bash {input.script} open
-        touch {output}
+        python create_dumux_summary.py \
+            --input_configuration {params.configs} \
+            --input_parameter_file {input.parameter_files} \
+            --input_solution_vtu {input.solution_vtu_files} \
+            --input_benchmark "{benchmark}" \
+            --input_benchmark_uri "{benchmark_uri}" \
+            --output_summary_json {output.summary}
         """

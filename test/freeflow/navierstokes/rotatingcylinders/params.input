@@ -7,7 +7,7 @@ Radial0 = 1.0 1.5 2.0
 Angular1 = 0.0 360.0
 
 [Problem]
-Name = test_rotatingcylinders
+Name = /Users/sarbani/NFDI_Benchmark/dumux_benchmark/test_rotatingcylinders
 EnableGravity = false
 EnableInertiaTerms = true
 
