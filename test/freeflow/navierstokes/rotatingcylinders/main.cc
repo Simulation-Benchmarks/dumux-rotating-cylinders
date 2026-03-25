@@ -12,6 +12,8 @@
 #include <dune/common/parallel/mpihelper.hh>
 #include <dune/common/timer.hh>
 #include <dune/common/version.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dumux/common/initialize.hh>
 #include <dumux/common/dumuxmessage.hh>
@@ -31,6 +33,9 @@
 #include <dumux/freeflow/navierstokes/velocityoutput.hh>
 
 #include "properties.hh"
+
+#include <fstream>
+#include "jsonparametertools.hh"
 
 template<class Vector, class MomGG, class MassGG, class MomP, class MomIdx, class MassIdx>
 auto dirichletDofs(std::shared_ptr<MomGG> momentumGridGeometry,
@@ -81,7 +86,75 @@ int main(int argc, char** argv)
         DumuxMessage::print(/*firstCall=*/true);
 
     // parse command line arguments and input file
-    Parameters::init(argc, argv);
+    // Parameters::init(argc, argv);
+
+    // 1. Manually peek for the JSON file in the command line arguments
+    std::string jsonFile = "";
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg.find("JsonParameterFile=") == 0) {
+            jsonFile = arg.substr(18); // Length of "JsonParameterFile="
+        }
+    }
+
+    // 2. Use the Dumux Parameters::init overload that takes a lambda.
+    Dumux::Parameters::init([&](Dune::ParameterTree& tree) {
+        
+        // A. Handle the standard .input file (ONLY if it's not the JSON file)
+        std::string inputFile = (argc > 1 && argv[1][0] != '-') ? argv[1] : "";
+        
+        // Fix: Don't let Dune try to parse the JSON file as an INI file
+        if (!inputFile.empty() && inputFile.find("JsonParameterFile=") == std::string::npos && inputFile.find(".json") == std::string::npos) {
+            try {
+                Dune::ParameterTreeParser::readINITree(inputFile, tree);
+            } catch (...) {
+                // If it fails to open a standard file, we just move on to JSON/CLI
+            }
+        }
+
+        // B. Handle standard Command Line arguments (-Parameter.Key Value)
+        Dune::ParameterTreeParser::readOptions(argc, argv, tree);
+
+        // C. Merge the JSON file
+        if (!jsonFile.empty()) {
+            Dune::ParameterTree jsonPt;
+            Dumux::Utils::parseNestedJson(jsonFile, jsonPt);
+            
+            // if (mpiHelper.rank() == 0) {
+            //     // Check if both value keys and sub-keys are empty
+            //     if (jsonPt.getValueKeys().empty() && jsonPt.getSubKeys().empty()) {
+            //         std::cout << "DEBUG ERROR: jsonPt is EMPTY after parsing " << jsonFile << std::endl;
+            //     } else {
+            //         std::cout << "DEBUG SUCCESS: jsonPt has " << jsonPt.getValueKeys().size() << " values and " 
+            //                 << jsonPt.getSubKeys().size() << " sub-sections." << std::endl;
+            //     }
+            // }
+
+            auto mergeFunc = [](auto& self, const auto& source, auto& dest) -> void {
+                for (const auto& key : source.getValueKeys())
+                    dest[key] = source[key];
+                for (const auto& subKey : source.getSubKeys())
+                    self(self, source.sub(subKey), dest.sub(subKey));
+            };
+            mergeFunc(mergeFunc, jsonPt, tree);
+        }
+
+        // --- DEBUG OUTPUT ---
+        if (mpiHelper.rank() == 0) {
+            // std::cout << "\n==========================================" << std::endl;
+            // std::cout << "DEBUG: FINAL FLATTENED PARAMETER TREE" << std::endl;
+            // std::cout << "==========================================" << std::endl;
+            // tree.report(); // Prints to terminal
+            
+            // Also save to a file for easier inspection
+            std::ofstream debugFile("debug_flattened_params.ini");
+            // tree.report(debugFile);
+            // std::cout << "==========================================\n" << std::endl;
+        }
+    });
+
+    // if (mpiHelper.rank() == 0 && !jsonFile.empty())
+    //     std::cout << "✓ Parameters successfully initialized with JSON: " << jsonFile << std::endl;
 
     // create a grid
     using Grid = GetPropType<MassTypeTag, Properties::Grid>;

@@ -62,9 +62,7 @@ RUN git config --global user.email "sarbani.roy@simtech.uni-stuttgart.de"
 COPY install_rotating-cylinders.sh /dumux/install_rotating-cylinders.sh
 RUN bash /dumux/install_rotating-cylinders.sh \
     && rm -f /dumux/install_rotating-cylinders.sh
-
-RUN cd /dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotatingcylinders
-        
+       
 # Build rotating cylinders executable
 RUN cd /dumux/rotating-cylinders/build-cmake/test/freeflow/navierstokes/rotatingcylinders \
     && make test_ff_navierstokes_rotatingcylinders
