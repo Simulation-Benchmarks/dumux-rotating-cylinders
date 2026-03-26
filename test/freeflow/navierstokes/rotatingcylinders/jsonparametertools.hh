@@ -88,11 +88,6 @@ public:
             std::cerr << "!!! FILE ERROR: File " << filename << " is empty!" << std::endl;
             return;
         }
-
-        // Print first 5 chars to check for hidden BOM or weird encoding
-        // std::cout << "DEBUG: Parsing started. File size: " << data.size() << " bytes. First chars: ";
-        // for(int i=0; i<std::min((int)data.size(), 5); ++i) std::cout << "[" << (int)data[i] << "]";
-        // std::cout << std::endl;
         
         pos = 0;
         parseValue("", pt);

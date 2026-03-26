@@ -9,6 +9,8 @@
   },
   "Problem": {
     "Name": "test_rotatingcylinders",
+    "Omega1": 1e2,
+    "Omega2": 0,
     "EnableGravity": false,
     "EnableInertiaTerms": true
   },
