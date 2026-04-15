@@ -8,6 +8,9 @@
 
 #include <iostream>
 #include <random>
+#include <fstream>
+#include <cstdlib>
+#include <string>
 
 #include <dune/common/parallel/mpihelper.hh>
 #include <dune/common/timer.hh>
@@ -29,6 +32,9 @@
 #include <dumux/multidomain/newtonsolver.hh>
 
 #include <dumux/freeflow/navierstokes/velocityoutput.hh>
+
+#include <dumux/discretization/elementsolution.hh>
+#include <dumux/discretization/evalsolution.hh>
 
 #include "properties.hh"
 
@@ -114,6 +120,10 @@ int main(int argc, char** argv)
     using MassProblem = GetPropType<MassTypeTag, Properties::Problem>;
     auto massProblem = std::make_shared<MassProblem>(massGridGeometry, couplingManager);
 
+    // Extract indices for L2 norm calculation
+    using MassIndices = typename GetPropType<MassTypeTag, Properties::ModelTraits>::Indices;
+    using MomentumIndices = typename GetPropType<MomentumTypeTag, Properties::ModelTraits>::Indices;
+
     // the solution vector
     constexpr auto momentumIdx = CouplingManager::freeFlowMomentumIndex;
     constexpr auto massIdx = CouplingManager::freeFlowMassIndex;
@@ -173,6 +183,56 @@ int main(int argc, char** argv)
         nonLinearSolver.solve(x);
     }
 
+    // Initialize error variables
+    using Scalar = GetPropType<MassTypeTag, Properties::Scalar>;
+    Scalar l2ErrorMassSquared = 0.0;
+    Scalar l2ErrorMomentumSquared = 0.0;
+
+    // Loop over elements to integrate error
+    for (const auto& element : elements(leafGridView))
+    {
+        auto geometry = element.geometry();
+        const auto& quad = Dune::QuadratureRules<Scalar, Grid::dimension>::rule(element.type(), 3);
+
+        for (const auto& qp : quad)
+        {
+            const auto& pos = geometry.global(qp.position());
+            const auto weight = qp.weight() * geometry.integrationElement(qp.position());
+
+            // --- Mass (Pressure) Error ---
+            // Fix: Pass 'element' as first argument
+            auto massElemSol = elementSolution(element, x[massIdx], *massGridGeometry);
+            auto massNum = evalSolution(element, geometry, *massGridGeometry, massElemSol, pos);
+            auto massExact = massProblem->analyticalSolution(pos);
+            
+            Scalar pDiff = massNum[MassIndices::pressureIdx] - massExact[MassIndices::pressureIdx];
+            l2ErrorMassSquared += pDiff * pDiff * weight;
+
+            // --- Momentum (Velocity) Error ---
+            auto momElemSol = elementSolution(element, x[momentumIdx], *momentumGridGeometry);
+            auto momNum = evalSolution(element, geometry, *momentumGridGeometry, momElemSol, pos);
+            auto momExact = momentumProblem->analyticalSolution(pos);
+
+            // Use the alias to access the specific velocity components
+            Scalar vDiffX = momNum[MomentumIndices::velocityXIdx] - momExact[MomentumIndices::velocityXIdx];
+            Scalar vDiffY = momNum[MomentumIndices::velocityYIdx] - momExact[MomentumIndices::velocityYIdx];
+
+            l2ErrorMomentumSquared += (vDiffX*vDiffX + vDiffY*vDiffY) * weight;
+        }
+    }
+
+    // Collect from all MPI ranks
+    Scalar totalL2Mass = std::sqrt(leafGridView.comm().sum(l2ErrorMassSquared));
+    Scalar totalL2Momentum = std::sqrt(leafGridView.comm().sum(l2ErrorMomentumSquared));
+
+    if (mpiHelper.rank() == 0)
+    {
+        std::cout << "\n--- L2 Error Metrics ---" << std::endl;
+        std::cout << "L2 Error (Pressure): " << totalL2Mass << std::endl;
+        std::cout << "L2 Error (Velocity): " << totalL2Momentum << std::endl;
+        std::cout << "------------------------\n" << std::endl;
+    }
+
     // write vtk output
     vtkWriter.write(1.0);
 
@@ -189,9 +249,39 @@ int main(int argc, char** argv)
     // finalize, print dumux message to say goodbye
     ////////////////////////////////////////////////////////////
 
-    // print dumux end message
     if (mpiHelper.rank() == 0)
     {
+        std::cout << "\n--- Saving Metrics and Creating Zip ---" << std::endl;
+        
+        // Write the Metrics JSON
+        std::ofstream out("solution_metrics.json");
+        out << "{\n";
+        out << "  \"max_l2_error_pressure\": " << totalL2Mass << ",\n";
+        out << "  \"max_l2_error_velocity\": " << totalL2Momentum << "\n";
+        // out << "  \"simulation_time\": " << timer.elapsed() << "\n";
+        out << "}\n";
+        out.close();
+
+        // Identify files based on Problem.Name
+        std::string configName = getParam<std::string>("Problem.Name");
+        
+        // Command to zip metrics and VTK files
+        // Added -j to junk paths (keeps zip flat) and redirected stderr to null
+        std::string zipCommand = "zip -j " + configName + ".zip solution_metrics.json " + 
+                                 configName + "*.vtu " + configName + "*.pvtu " + 
+                                 configName + "*.vtp > /dev/null 2>&1";
+
+        std::cout << "Executing: " << zipCommand << std::endl;
+        int result = std::system(zipCommand.c_str());
+        
+        if (result == 0)
+            std::cout << "Successfully created " << configName << ".zip" << std::endl;
+        else
+            std::cerr << "Warning: Zip command failed. Ensure 'zip' is installed in the container." << std::endl;
+
+        // Print final summary
+        std::cout << "Simulation took " << timer.elapsed() << " seconds on "
+                  << comm.size() << " processes.\n";
         Parameters::print();
         DumuxMessage::print(/*firstCall=*/false);
     }
