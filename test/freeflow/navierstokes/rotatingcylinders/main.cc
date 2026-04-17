@@ -251,37 +251,38 @@ int main(int argc, char** argv)
     {
         std::cout << "\n--- Saving Metrics and Creating Zip ---" << std::endl;
         
-        // Write the Metrics JSON
-        std::ofstream out("solution_metrics.json");
-        out << "{\n";
-        out << "  \"max_l2_error_pressure\": " << totalL2Mass << ",\n";
-        out << "  \"max_l2_error_velocity\": " << totalL2Momentum << "\n";
-        // out << "  \"simulation_time\": " << timer.elapsed() << "\n";
-        out << "}\n";
-        out.close();
-
+        // Write the Metrics JSON (Outside the zip)
+        {
+            std::ofstream out("solution_metrics.json");
+            out << "{\n";
+            out << "  \"max_l2_error_pressure\": " << totalL2Mass << ",\n";
+            out << "  \"max_l2_error_velocity\": " << totalL2Momentum << "\n";
+            out << "}\n";
+            // The file closes here when 'out' goes out of scope
+        }
+        
         // Identify files based on Problem.Name
         std::string configName = massProblem->name();
         if (configName == "") configName = getParam<std::string>("Problem.Name");
-
-        // Create the ZIP and DELETE original VTU/PVTU files
+        
+        // Create the ZIP containing ONLY .pvd and .vtu
         std::string zipCommand = "zip -j -m " + configName + ".zip " + 
                                  configName + ".pvd " +
-                                 configName + "*.vtu> /dev/null 2>&1";
+                                 configName + "*.vtu > /dev/null 2>&1";
 
+        std::cout << "Executing: " << zipCommand << std::endl;
         int result = std::system(zipCommand.c_str());
         
         if (result == 0)
         {
-            std::cout << "Successfully created " << configName << ".zip " << std::endl;
+            std::cout << "Successfully created " << configName << ".zip containing VTK results." << std::endl;
+            std::cout << "Note: solution_metrics.json remains in the directory." << std::endl;
         }
         else
         {
-            std::cerr << "Warning: Zip command failed. Files were not deleted." << std::endl;
+            std::cerr << "Warning: Zip command failed. Check if 'zip' is installed." << std::endl;
         }
 
-        std::cout << "Simulation took " << timer.elapsed() << " seconds on "
-                  << comm.size() << " processes.\n";
         Parameters::print();
         DumuxMessage::print(/*firstCall=*/false);
     }
