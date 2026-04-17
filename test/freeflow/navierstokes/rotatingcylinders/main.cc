@@ -233,10 +233,8 @@ int main(int argc, char** argv)
         std::cout << "------------------------\n" << std::endl;
     }
 
-    // write vtk output
     vtkWriter.write(1.0);
 
-    // update coupling manager for output
     couplingManager->updateSolution(x);
 
     timer.stop();
@@ -263,23 +261,25 @@ int main(int argc, char** argv)
         out.close();
 
         // Identify files based on Problem.Name
-        std::string configName = getParam<std::string>("Problem.Name");
-        
-        // Command to zip metrics and VTK files
-        // Added -j to junk paths (keeps zip flat) and redirected stderr to null
-        std::string zipCommand = "zip -j " + configName + ".zip solution_metrics.json " + 
-                                 configName + "*.vtu " + configName + "*.pvtu " + 
-                                 configName + "*.vtp > /dev/null 2>&1";
+        std::string configName = massProblem->name();
+        if (configName == "") configName = getParam<std::string>("Problem.Name");
 
-        std::cout << "Executing: " << zipCommand << std::endl;
+        // Create the ZIP and DELETE original VTU/PVTU files
+        std::string zipCommand = "zip -j -m " + configName + ".zip " + 
+                                 configName + ".pvd " +
+                                 configName + "*.vtu> /dev/null 2>&1";
+
         int result = std::system(zipCommand.c_str());
         
         if (result == 0)
-            std::cout << "Successfully created " << configName << ".zip" << std::endl;
+        {
+            std::cout << "Successfully created " << configName << ".zip " << std::endl;
+        }
         else
-            std::cerr << "Warning: Zip command failed. Ensure 'zip' is installed in the container." << std::endl;
+        {
+            std::cerr << "Warning: Zip command failed. Files were not deleted." << std::endl;
+        }
 
-        // Print final summary
         std::cout << "Simulation took " << timer.elapsed() << " seconds on "
                   << comm.size() << " processes.\n";
         Parameters::print();

@@ -3,8 +3,8 @@
 
 dumux_add_test(NAME test_ff_navierstokes_rotatingcylinders
                SOURCES main.cc
-               COMPILE_DEFINITIONS TYPETAG_MOMENTUM=DFGChannelTestMomentumDiamond
-               COMPILE_DEFINITIONS TYPETAG_MASS=DFGChannelTestMassTpfa
+               COMPILE_DEFINITIONS TYPETAG_MOMENTUM=RotatingCylindersTestMomentumDiamond
+               COMPILE_DEFINITIONS TYPETAG_MASS=RotatingCylindersTestMassTpfa
                LABELS freeflow navierstokes
                CMAKE_GUARD "( HAVE_UMFPACK AND dune-uggrid_FOUND )"
                COMMAND ${DUMUX_RUNTEST}

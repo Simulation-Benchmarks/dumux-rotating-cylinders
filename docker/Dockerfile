@@ -6,6 +6,10 @@
 # It is Ubuntu LTS customized for better Docker compatibility
 FROM phusion/baseimage:jammy-1.0.4
 
+# Force mirrors to a more reliable global endpoint for multi-arch builds
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://azure.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list \
+    && sed -i 's|http://security.ubuntu.com/ubuntu/|http://azure.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
+    
 # run Ubuntu update as advised on https://github.com/phusion/baseimage-docker
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
@@ -32,6 +36,7 @@ RUN apt-get update \
     libeigen3-dev \
     doxygen \
     wget \
+    zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

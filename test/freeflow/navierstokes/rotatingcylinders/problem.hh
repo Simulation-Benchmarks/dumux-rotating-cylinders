@@ -35,7 +35,7 @@ namespace Dumux {
  *   https://doi.org/10.1007/978-3-322-89849-4_39
  */
 template <class TypeTag, class BaseProblem>
-class DFGChannelTestProblem : public BaseProblem
+class RotatingCylinders : public BaseProblem
 {
     using ParentType = BaseProblem;
 
@@ -61,7 +61,7 @@ class DFGChannelTestProblem : public BaseProblem
     using CouplingManager = GetPropType<TypeTag, Properties::CouplingManager>;
 
 public:
-    DFGChannelTestProblem(std::shared_ptr<const GridGeometry> gridGeometry, std::shared_ptr<CouplingManager> couplingManager)
+    RotatingCylinders(std::shared_ptr<const GridGeometry> gridGeometry, std::shared_ptr<CouplingManager> couplingManager)
     : ParentType(gridGeometry, couplingManager, ParentType::isMomentumProblem() ? "Momentum" : "Mass")
     {
         density_ = getParam<Scalar>("Component.LiquidDensity");
