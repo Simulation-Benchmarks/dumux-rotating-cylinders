@@ -265,23 +265,22 @@ int main(int argc, char** argv)
         std::string configName = massProblem->name();
         if (configName == "") configName = getParam<std::string>("Problem.Name");
         
-        // Create the ZIP containing ONLY .pvd and .vtu
-        std::string zipCommand = "zip -j -m " + configName + ".zip " + 
-                                 configName + ".pvd " +
-                                 configName + "*.vtu > /dev/null 2>&1";
+        // // Create the ZIP containing ONLY .pvd and .vtu
+        // std::string zipCommand = "zip -j -m " + configName + ".zip " + 
+        //                          configName + ".pvd " +
+        //                          configName + "*.vtu > /dev/null 2>&1";
 
-        std::cout << "Executing: " << zipCommand << std::endl;
-        int result = std::system(zipCommand.c_str());
+        // std::cout << "Executing: " << zipCommand << std::endl;
+        // int result = std::system(zipCommand.c_str());
         
-        if (result == 0)
-        {
-            std::cout << "Successfully created " << configName << ".zip containing VTK results." << std::endl;
-            std::cout << "Note: solution_metrics.json remains in the directory." << std::endl;
-        }
-        else
-        {
-            std::cerr << "Warning: Zip command failed. Check if 'zip' is installed." << std::endl;
-        }
+        // if (result == 0)
+        // {
+        //     std::cout << "Successfully created " << configName << ".zip containing VTK results." << std::endl;
+        // }
+        // else
+        // {
+        //     std::cerr << "Warning: Zip command failed." << std::endl;
+        // }
 
         Parameters::print();
         DumuxMessage::print(/*firstCall=*/false);
