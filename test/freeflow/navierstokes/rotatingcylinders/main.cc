@@ -183,6 +183,8 @@ int main(int argc, char** argv)
         nonLinearSolver.solve(x);
     }
 
+    vtkWriter.write(1.0);
+
     // Initialize error variables
     using Scalar = GetPropType<MassTypeTag, Properties::Scalar>;
     Scalar l2ErrorMassSquared = 0.0;
@@ -209,7 +211,6 @@ int main(int argc, char** argv)
             
             Scalar pDiff = massNum[MassIndices::pressureIdx] - massExact[MassIndices::pressureIdx];
             l2ErrorMassSquared += pDiff * pDiff * weight;
-            // ADD THIS:
             l2NormMassExactSquared += massExact[MassIndices::pressureIdx] * massExact[MassIndices::pressureIdx] * weight;
 
             // --- Momentum (Velocity) Error ---
@@ -221,7 +222,6 @@ int main(int argc, char** argv)
             Scalar vDiffY = momNum[MomentumIndices::velocityYIdx] - momExact[MomentumIndices::velocityYIdx];
 
             l2ErrorMomentumSquared += (vDiffX*vDiffX + vDiffY*vDiffY) * weight;
-            // ADD THIS:
             l2NormMomentumExactSquared += (momExact[MomentumIndices::velocityXIdx]*momExact[MomentumIndices::velocityXIdx] + 
                                            momExact[MomentumIndices::velocityYIdx]*momExact[MomentumIndices::velocityYIdx]) * weight;
         }
@@ -239,64 +239,39 @@ int main(int argc, char** argv)
     Scalar relativeL2Mass = (totalNormMass > 1e-18) ? (totalL2ErrorMass / totalNormMass) : totalL2ErrorMass;
     Scalar relativeL2Momentum = (totalNormMomentum > 1e-18) ? (totalL2ErrorMomentum / totalNormMomentum) : totalL2ErrorMomentum;
     
-    if (mpiHelper.rank() == 0)
-    {
-        std::ofstream out("solution_metrics.json");
-        out << "{\n";
-        out << "  \"l2_error_pressure_rel\": " << relativeL2Mass << ",\n";
-        out << "  \"l2_error_velocity_rel\": " << relativeL2Momentum << "\n";
-        out << "}\n";
-    }
-    vtkWriter.write(1.0);
-
-    couplingManager->updateSolution(x);
-
-    timer.stop();
-    const auto& comm = leafGridView.comm();
-    std::cout << "Simulation took " << timer.elapsed() << " seconds on "
-              << comm.size() << " processes.\n";
-    // std::cout << "Simulation took " << timer.elapsed() << " seconds on "
-    //           << comm.size() << " processes.\n"
-    //           << "The cumulative CPU time was " << timer.elapsed()*comm.size() << " seconds.\n";
-
     ////////////////////////////////////////////////////////////
     // finalize, print dumux message to say goodbye
     ////////////////////////////////////////////////////////////
 
     if (mpiHelper.rank() == 0)
     {
-        // std::cout << "\n--- Saving Metrics and Creating Zip ---" << std::endl;
+        std::cout << "\n--- Saving Metrics and Creating Zip ---" << std::endl;
         
-        // // Write the Metrics JSON (Outside the zip)
-        // {
-        //     std::ofstream out("solution_metrics.json");
-        //     out << "{\n";
-        //     out << "  \"max_l2_error_pressure\": " << totalL2Mass << ",\n";
-        //     out << "  \"max_l2_error_velocity\": " << totalL2Momentum << "\n";
-        //     out << "}\n";
-        //     // The file closes here when 'out' goes out of scope
-        // }
+        std::ofstream out("solution_metrics.json");
+        out << "{\n";
+        out << "  \"l2_error_pressure_rel\": " << relativeL2Mass << ",\n";
+        out << "  \"l2_error_velocity_rel\": " << relativeL2Momentum << "\n";
+        out << "}\n";
         
-        // // Identify files based on Problem.Name
-        // std::string configName = massProblem->name();
-        // if (configName == "") configName = getParam<std::string>("Problem.Name");
+        // Identify files based on Problem.Name
+        std::string configName = massProblem->name();
+        if (configName == "") configName = getParam<std::string>("Problem.Name");
         
-        // // Create the ZIP containing ONLY .pvd and .vtu
-        // std::string zipCommand = "zip -j -m " + configName + ".zip " + 
-        //                          configName + ".pvd " +
-        //                          configName + "*.vtu > /dev/null 2>&1";
+        // Create the ZIP containing ONLY .pvd and .vtu
+        std::string zipCommand = "zip " + configName + ".zip " + 
+                                 configName + ".pvd " +
+                                 configName + "*.vtu > /dev/null 2>&1";
 
-        // std::cout << "Executing: " << zipCommand << std::endl;
-        // int result = std::system(zipCommand.c_str());
+        int result = std::system(zipCommand.c_str());
         
-        // if (result == 0)
-        // {
-        //     std::cout << "Successfully created " << configName << ".zip containing VTK results." << std::endl;
-        // }
-        // else
-        // {
-        //     std::cerr << "Warning: Zip command failed." << std::endl;
-        // }
+        if (result == 0)
+        {
+            std::cout << "Successfully created " << configName << ".zip containing VTK results." << std::endl;
+        }
+        else
+        {
+            std::cerr << "Warning: Zip command failed." << std::endl;
+        }
 
         Parameters::print();
         DumuxMessage::print(/*firstCall=*/false);
