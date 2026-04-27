@@ -247,32 +247,50 @@ int main(int argc, char** argv)
     {
         std::cout << "\n--- Saving Metrics and Creating Zip ---" << std::endl;
         
-        std::ofstream out("solution_metrics.json");
-        out << "{\n";
-        out << "  \"l2_error_pressure_rel\": " << relativeL2Mass << ",\n";
-        out << "  \"l2_error_velocity_rel\": " << relativeL2Momentum << "\n";
-        out << "}\n";
-        
-        // Identify files based on Problem.Name
-        std::string configName = massProblem->name();
-        if (configName == "") configName = getParam<std::string>("Problem.Name");
-        
-        // Create the ZIP containing ONLY .pvd and .vtu
-        std::string zipCommand = "zip " + configName + ".zip " + 
-                                 configName + ".pvd " +
-                                 configName + "*.vtu > /dev/null 2>&1";
+        std::string problemName = massProblem->name();
+        if (problemName == "") problemName = getParam<std::string>("Problem.Name", "sim");
 
-        int result = std::system(zipCommand.c_str());
+        std::string jsonPath = "solution_metrics.json";
         
-        if (result == 0)
+        size_t lastSlash = problemName.find_last_of('/');
+        if (lastSlash != std::string::npos)
         {
-            std::cout << "Successfully created " << configName << ".zip containing VTK results." << std::endl;
+            std::string directory = problemName.substr(0, lastSlash);
+            jsonPath = directory + "/solution_metrics.json";
+        }
+
+        std::ofstream out(jsonPath);
+        if (out.is_open())
+        {
+            out << "{\n";
+            out << "  \"l2_error_pressure_rel\": " << relativeL2Mass << ",\n";
+            out << "  \"l2_error_velocity_rel\": " << relativeL2Momentum << "\n";
+            out << "}\n";
+            out.close();
+            std::cout << "Metrics saved to: " << jsonPath << std::endl;
         }
         else
         {
-            std::cerr << "Warning: Zip command failed." << std::endl;
+            std::cerr << "Error: Could not open file for writing: " << jsonPath << std::endl;
         }
 
+        // Create the ZIP containing ONLY .pvd and .vtu
+        std::string zipCmd = "zip -j \"" + problemName + ".zip\" \"" + problemName + ".pvd\" \"" + problemName + "\"*.vtu";
+    
+        std::cout << "Executing: " << zipCmd << std::endl;
+        int result = std::system(zipCmd.c_str());
+
+        if (result == 0)
+        {
+            std::cout << "Successfully created " << problemName << ".zip containing VTK results." << std::endl;
+            std::cout << "Cleaning up raw VTK files..." << std::endl;
+            std::string rmCommand = "rm " + problemName + ".pvd " + problemName + "*.vtu";
+            std::system(rmCommand.c_str());
+        }
+        else
+        {
+            std::cerr << "Warning: Zip command failed. Original files kept for safety." << std::endl;
+        }
         Parameters::print();
         DumuxMessage::print(/*firstCall=*/false);
     }
