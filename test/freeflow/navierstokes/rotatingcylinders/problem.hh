@@ -152,7 +152,7 @@ public:
         else
         {
             using std::log;
-            values[Indices::pressureIdx] = 0.5*a*a*radius*radius + 2*a*b*log(radius) + 0.5*b*b/(radius*radius);
+            values[Indices::pressureIdx] = 0.5*a*a*radius*radius + 2*a*b*log(radius) - 0.5*b*b/(radius*radius);
         }
 
         return values;

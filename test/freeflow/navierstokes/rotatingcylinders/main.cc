@@ -183,6 +183,34 @@ int main(int argc, char** argv)
         nonLinearSolver.solve(x);
     }
 
+    // Calculate difference for one pressure element (first cell center)
+    auto fvGeometry = localView(*massGridGeometry);
+    bool found = false;
+    double pressureDiff = 0.0;
+    for (const auto& element : elements(leafGridView))
+    {
+        if (found) break;
+        fvGeometry.bind(element);
+        for (const auto& scv : scvs(fvGeometry))
+        {
+            const auto globalPos = scv.center();
+            const auto simP = x[massIdx][scv.dofIndex()];
+            const auto exactValues = massProblem->analyticalSolution(globalPos);
+            const auto exactP = exactValues[MassIndices::pressureIdx];
+            pressureDiff = simP - exactP;
+            std::cout << "Pressure difference at position " << globalPos 
+                    << " (DOF index " << scv.dofIndex() << "): simulated = " << simP 
+                    << ", analytical = " << exactP << ", difference = " << pressureDiff << std::endl;
+            found = true;
+            break;
+        }
+    }
+
+    // Subtract the difference from the entire pressure solution vector
+    for (auto & val : x[massIdx])
+        val -= pressureDiff;
+    std::cout << "Subtracted pressure difference (" << pressureDiff << ") from the entire pressure solution vector." << std::endl;
+
     // --- Print simulated vs exact pressure ---
     if (mpiHelper.rank() == 0)
     {
