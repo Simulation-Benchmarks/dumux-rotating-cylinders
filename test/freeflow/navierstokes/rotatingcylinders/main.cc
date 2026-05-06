@@ -211,41 +211,6 @@ int main(int argc, char** argv)
         val -= pressureDiff;
     std::cout << "Subtracted pressure difference (" << pressureDiff << ") from the entire pressure solution vector." << std::endl;
 
-    // --- Print simulated vs exact pressure ---
-    if (mpiHelper.rank() == 0)
-    {
-        std::ofstream csvFile("pressure_comparison.csv");
-        // Header
-        csvFile << "x,y,simulated_pressure,analytical_pressure,absolute_error\n";
-
-        auto fvGeometry = localView(*massGridGeometry);
-        
-        using MassIndices = typename GetPropType<MassTypeTag, Properties::ModelTraits>::Indices;
-
-        for (const auto& element : elements(leafGridView))
-        {
-            fvGeometry.bind(element);
-            for (const auto& scv : scvs(fvGeometry))
-            {
-                const auto globalPos = scv.center();
-                
-                const auto simP = x[massIdx][scv.dofIndex()];
-
-                const auto exactValues = massProblem->analyticalSolution(globalPos);
-                const auto exactP = exactValues[MassIndices::pressureIdx];
-
-                csvFile << std::setprecision(10) 
-                        << globalPos[0] << "," 
-                        << globalPos[1] << "," 
-                        << simP << "," 
-                        << exactP << "," 
-                        << std::abs(simP - exactP) << "\n";
-            }
-        }
-        csvFile.close();
-        std::cout << "CSV file 'pressure_comparison.csv' has been generated." << std::endl;
-    }
-
     vtkWriter.write(1.0);
 
     // Initialize error variables
@@ -302,6 +267,7 @@ int main(int argc, char** argv)
     Scalar relativeL2Mass = (totalNormMass > 1e-18) ? (totalL2ErrorMass / totalNormMass) : totalL2ErrorMass;
     Scalar relativeL2Momentum = (totalNormMomentum > 1e-18) ? (totalL2ErrorMomentum / totalNormMomentum) : totalL2ErrorMomentum;
     
+        
     ////////////////////////////////////////////////////////////
     // finalize, print dumux message to say goodbye
     ////////////////////////////////////////////////////////////
