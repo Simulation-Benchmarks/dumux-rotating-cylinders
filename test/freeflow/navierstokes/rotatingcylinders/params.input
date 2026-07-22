@@ -1,6 +1,6 @@
 [Grid]
-Cells0 = 40 40
-Cells1 = 160
+Cells0 = 80 80
+Cells1 = 320
 Grading0 = 1.1 -1.1
 Grading1 = 1.0
 Radial0 = 1.0 1.5 2.0

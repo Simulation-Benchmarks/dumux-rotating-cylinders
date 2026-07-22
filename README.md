@@ -11,7 +11,7 @@ Additionally, all headers in `dumux` that are required to build the
 executable from the sources
 *   `test/freeflow/navierstokes/rotatingcylinders/main.cc`
 
-have been extracted. You can configure the module just like any other DUNE
+have been extracted. One can configure the module just like any other DUNE
 module by using `dunecontrol`. For building and running the executable,
 please go to the build folder corresponding to the sources listed above.
 
@@ -19,7 +19,7 @@ please go to the build folder corresponding to the sources listed above.
 ## License
 
 This project is licensed under the terms and conditions of the GNU General Public
-License (GPL) version 3 or - at your option - any later version.
+License (GPL) version 3 or - any later version.
 The GPL can be found under [GPL-3.0-or-later.txt](LICENSES/GPL-3.0-or-later.txt)
 provided in the `LICENSES` directory located at the topmost of the source code tree.
 
@@ -50,7 +50,7 @@ git clone https://git.iws.uni-stuttgart.de/benchmarks/rotating-cylinders.git rot
 ```
 
 This will clone all modules into the directory `DUMUX`,
-configure your module with `dunecontrol` and build tests.
+configure the module with `dunecontrol` and build tests.
 
 
 ### Option 2: Docker
@@ -67,10 +67,6 @@ Start a container and drop into a shell, with the current directory mounted
 as the shared workspace at `/dumux/shared`:
 ```sh
 ./docker_rotatingCylinders.sh open
-```
-You can pass a different image name as an optional argument:
-```sh
-./docker_rotatingCylinders.sh open <image-name>
 ```
 
 ## Running the simulation
