@@ -85,18 +85,3 @@ configuration from `params.input`, which controls:
 On completion, the run produces:
 *   `solution_metrics.json` — relative L2 errors of pressure and velocity against the analytical Taylor–Couette solution
 *   `<Problem.Name>.zip` — the `.pvd`/`.vtu` VTK output files (the raw files are removed after zipping)
-
-## Visualization
-
-`pvViewer.py` is a ParaView Python script that loads the `.pvd` output,
-colors the domain by pressure, and saves a high-resolution screenshot. Run it
-with `pvpython` (ParaView's Python interpreter) from the directory containing
-the simulation output:
-
-```sh
-pvpython pvViewer.py
-```
-
-By default it expects a file named `test_rotatingcylinders.pvd` (matching
-`Problem.Name` in `params.input`) and writes
-`pressure_field_presentation_fixed.png`.
