@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: Copyright © DuMux Project contributors, see AUTHORS.md in root folder
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Mirror this repository and its container images to GitHub, because the
+# university firewall blocks access to git.iws.uni-stuttgart.de from outside
+# (e.g. from GitHub-hosted CI runners).
+#
+#   git:    https://github.com/Simulation-Benchmarks/dumux-rotating-cylinders
+#   images: ghcr.io/simulation-benchmarks/dumux-rotating-cylinders:<tag>
+#
+# Required CI/CD variables (Settings > CI/CD > Variables, masked + protected):
+#   GITHUB_MIRROR_USER   GitHub user the token belongs to
+#   GITHUB_MIRROR_TOKEN  classic PAT with scopes `repo` and `write:packages`
+
+variables:
+  GITHUB_REPO: Simulation-Benchmarks/dumux-rotating-cylinders
+  GHCR_IMAGE: ghcr.io/simulation-benchmarks/dumux-rotating-cylinders
+
+mirror-to-github:
+  image: alpine:3.20
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  before_script:
+    - apk add --no-cache git skopeo jq
+  script:
+    # git: all branches and tags, deleting refs that no longer exist here
+    - git clone --bare "$CI_REPOSITORY_URL" repo.git
+    - git -C repo.git push --prune
+        "https://${GITHUB_MIRROR_USER}:${GITHUB_MIRROR_TOKEN}@github.com/${GITHUB_REPO}.git"
+        '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
+    # images: copy every tag; blobs already present on ghcr are skipped
+    - skopeo login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - skopeo login -u "$GITHUB_MIRROR_USER" -p "$GITHUB_MIRROR_TOKEN" ghcr.io
+    - |
+      for tag in $(skopeo list-tags "docker://$CI_REGISTRY_IMAGE" | jq -r '.Tags[]'); do
+        echo "Copying $CI_REGISTRY_IMAGE:$tag -> $GHCR_IMAGE:$tag"
+        skopeo copy --all --preserve-digests "docker://$CI_REGISTRY_IMAGE:$tag" "docker://$GHCR_IMAGE:$tag"
+      done
