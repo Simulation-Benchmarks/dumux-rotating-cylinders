@@ -18,6 +18,8 @@ variables:
 
 mirror-to-github:
   image: alpine:3.20
+  # git.iws.uni-stuttgart.de sporadically refuses connections to its token endpoint
+  retry: 2
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
@@ -37,5 +39,5 @@ mirror-to-github:
     - |
       for tag in $(skopeo list-tags "docker://$CI_REGISTRY_IMAGE" | jq -r '.Tags[]'); do
         echo "Copying $CI_REGISTRY_IMAGE:$tag -> $GHCR_IMAGE:$tag"
-        skopeo copy --all --preserve-digests "docker://$CI_REGISTRY_IMAGE:$tag" "docker://$GHCR_IMAGE:$tag"
+        skopeo copy --all --preserve-digests --retry-times 5 "docker://$CI_REGISTRY_IMAGE:$tag" "docker://$GHCR_IMAGE:$tag"
       done
