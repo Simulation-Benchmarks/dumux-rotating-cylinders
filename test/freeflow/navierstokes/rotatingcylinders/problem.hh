@@ -7,6 +7,7 @@
 #ifndef DUMUX_TEST_FREEFLOW_NAVIERSTOKES_3D_CHANNEL_PROBLEM_HH
 #define DUMUX_TEST_FREEFLOW_NAVIERSTOKES_3D_CHANNEL_PROBLEM_HH
 
+#include <bitset>
 #include <cmath>
 #include <numeric>
 
@@ -91,6 +92,36 @@ public:
 
         return values;
     }
+
+    /*!
+     * \brief Enable internal Dirichlet constraints for the mass problem.
+     *
+     * The velocity is prescribed on the whole boundary, so the pressure is
+     * only determined up to a constant and the system matrix is singular.
+     * Fixing the pressure in a single degree of freedom removes this null
+     * space, so that the direct solver does not depend on round-off to
+     * factorize a numerically singular matrix.
+     */
+    static constexpr bool enableInternalDirichletConstraints()
+    { return !ParentType::isMomentumProblem(); }
+
+    /*!
+     * \brief Fix the pressure in the degree of freedom with index 0.
+     */
+    std::bitset<DirichletValues::dimension> hasInternalDirichletConstraint(const Element& element, const SubControlVolume& scv) const
+    {
+        std::bitset<DirichletValues::dimension> values;
+        if constexpr (!ParentType::isMomentumProblem())
+            if (scv.dofIndex() == 0)
+                values.set(Indices::pressureIdx);
+        return values;
+    }
+
+    /*!
+     * \brief The pressure of the constrained degree of freedom is set to the analytical value.
+     */
+    DirichletValues internalDirichlet(const Element& element, const SubControlVolume& scv) const
+    { return analyticalSolution(scv.center()); }
 
     /*!
      * \brief Evaluates the boundary conditions for a Dirichlet boundary face
